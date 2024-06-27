@@ -1,13 +1,39 @@
 import logging
 import re
 import numpy as np
-from .. import _setup_cfg
+ 
 
 _logger = logging.getLogger('Innate')
 
 
+
 def generate_specific_function(expression, coefficients, variable_names):
-    # Define the function to only vary with specified variables
+    """
+    Creates a specific function that evaluates an expression with varying variables.
+
+    Parameters
+    ----------
+    expression : str
+        The mathematical expression to evaluate.
+    coefficients : dict
+        Dictionary containing fixed values for coefficients.
+    variable_names : list
+        List of variable names that will vary in the expression.
+
+    Returns
+    -------
+    function
+        A NumPy universal function that can handle arrays of varying variables.
+
+    Examples
+    --------
+    >>> expression = 'a + b / (variable1_range/10000.0) + c * np.log10(variable2_range/10000)'
+    >>> coefficients = {'a': 1, 'b': 4, 'c': 7}
+    >>> variable_names = ['variable1_range', 'variable2_range']
+    >>> specific_function = generate_specific_function(expression, coefficients, variable_names)
+    >>> specific_function([10000, 20000, 30000], [10000, 20000, 30000])
+    array([5.0, 5.107209969647869, 5.67318211637097], dtype=object)
+    """
     def specific_function(*variable_values):
         local_vars = coefficients.copy()  # Copy the dictionary of fixed variables
         # Update variable names with values dynamically from the input
@@ -19,27 +45,93 @@ def generate_specific_function(expression, coefficients, variable_names):
 
 
 def extract_coef_names(expression):
-    # Regex to find isolated letters (considered variables)
+    """
+    Extracts coefficient names from a mathematical expression.
+
+    Parameters
+    ----------
+    expression : str
+        The mathematical expression containing coefficients.
+
+    Returns
+    -------
+    list
+        Sorted list of unique coefficient names.
+
+    Examples
+    --------
+    >>> expression = 'a + b / (variable1_range/10000.0) + c * np.log10(variable2_range/10000)'
+    >>> coef_names = extract_coef_names(expression)
+    >>> coef_names
+    ['a', 'b', 'c']
+    """
     pattern = r'\b[a-zA-Z]\b'
-    # Find all matches and return as a set to remove duplicates
     matches = set(re.findall(pattern, expression))
     return sorted(matches)
 
 
-def create_coef_dict (coef_names, coef_values):
-    if len(coef_names)==len(coef_values):
-       out = dict(zip(coef_names, coef_values))
+def create_coef_dict(coef_names, coef_values):
+    """
+    Creates a dictionary mapping coefficient names to their corresponding values.
+
+    Parameters
+    ----------
+    coef_names : list
+        List of coefficient names.
+    coef_values : list
+        List of coefficient values.
+
+    Returns
+    -------
+    dict
+        Dictionary of coefficients and their values.
+
+    Raises
+    ------
+    TypeError
+        If the length of `coef_names` and `coef_values` are not equal.
+
+    Examples
+    --------
+    >>> coef_names = ['a', 'b', 'c']
+    >>> coef_values = [1, 2, 3]
+    >>> coefficients = create_coef_dict(coef_names, coef_values)
+    >>> coefficients
+    {'a': 1, 'b': 2, 'c': 3}
+    """
+    if len(coef_names) == len(coef_values):
+        out = dict(zip(coef_names, coef_values))
     else:
-        raise TypeError("length of coefficietns names different from the length of coefficients values")
-    return(out)
+        raise TypeError("length of coefficients names different from the length of coefficients values")
+    return out
 
 
 def extract_variables_names(expression, suffix='_range'):
-    # Construct the regex pattern dynamically to find words ending with the given suffix
-    pattern = rf'\b\w+{re.escape(suffix)}\b'  # Use re.escape to safely include the suffix in the regex
-    # Find all matches and return as a set to remove duplicates
+    """
+    Extracts variable names from a mathematical expression that end with a specified suffix.
+
+    Parameters
+    ----------
+    expression : str
+        The mathematical expression containing variable names.
+    suffix : str, optional
+        The suffix that variable names end with. Default is '_range'.
+
+    Returns
+    -------
+    list
+        Sorted list of unique variable names with the specified suffix.
+
+    Examples
+    --------
+    >>> expression = 'a + b / (variable1_range/10000.0) + c * np.log10(variable2_range/10000)'
+    >>> variable_names = extract_variables_names(expression)
+    >>> variable_names
+    ['variable1_range', 'variable2_range']
+    """
+    pattern = rf'\b\w+{re.escape(suffix)}\b'
     matches = set(re.findall(pattern, expression))
-    return sorted(list(matches))  # Return a sorted list of unique matches
+    return sorted(list(matches))
 
 
 def parse_string_equation(data_label, str_eqn, coeffs_eqn, variable_names):
